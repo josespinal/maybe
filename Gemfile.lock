@@ -398,6 +398,8 @@ GEM
     ruby-lsp-rails (0.3.29)
       ruby-lsp (>= 0.23.0, < 0.24.0)
     ruby-progressbar (1.13.0)
+    ruby-ray (0.4.1)
+      activesupport (>= 4.2)
     ruby-vips (2.2.2)
       ffi (~> 1.12)
       logger
@@ -518,6 +520,7 @@ DEPENDENCIES
   redcarpet
   rubocop-rails-omakase
   ruby-lsp-rails
+  ruby-ray
   selenium-webdriver
   sentry-rails
   sentry-ruby

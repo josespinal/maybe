@@ -30,6 +30,7 @@ gem "good_job"
 gem "stackprof"
 gem "sentry-ruby"
 gem "sentry-rails"
+gem "ruby-ray"
 
 # Active Storage
 gem "aws-sdk-s3", require: false

@@ -172,6 +172,7 @@ Rails.application.routes.draw do
   namespace :webhooks do
     post "plaid"
     post "stripe"
+    post "bpd-notification", to: "bpd_notification"
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
