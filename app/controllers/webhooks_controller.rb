@@ -48,7 +48,7 @@ class WebhooksController < ApplicationController
 
   def bpd_notification
     # Verify the Mailgun signature (optional but recommended)
-    if verify_mailgun_signature(params[:timestamp], params[:token], params[:signature])
+    if verify_mailgun_signature(params)
 
       # Process the email data
       from = params[:from]
