@@ -65,6 +65,26 @@ module BpdHelper
       end
     end
 
+    def verify_mailgun_signature(params)
+      token = params[:token]
+      timestamp = params[:timestamp]
+      signature = params[:signature]
+
+      # Ensure the timestamp is recent to prevent replay attacks
+      if timestamp.to_i < Time.now.to_i - 15 * 60
+        return false
+      end
+
+      # Generate the expected signature
+      data = [ timestamp, token ].join
+      expected_signature = OpenSSL::HMAC.hexdigest(
+        OpenSSL::Digest::SHA256.new,
+        ENV["MAILGUN_SIGNING_KEY"],
+        data
+      )
+
+      ActiveSupport::SecurityUtils.secure_compare(expected_signature, signature)
+    end
 
     # Save a transaction to the database
     def save_transaction(transaction, email)

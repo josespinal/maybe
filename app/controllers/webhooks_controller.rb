@@ -48,90 +48,52 @@ class WebhooksController < ApplicationController
 
   def bpd_notification
     # Verify the Mailgun signature (optional but recommended)
-    # if valid_signature?(params[:timestamp], params[:token], params[:signature])
-    # else
-    #   render json: { error: "Invalid signature" }, status: :unauthorized
-    # end
+    if verify_mailgun_signature(params[:timestamp], params[:token], params[:signature])
 
-    # Process the email data
-    from = params[:from]
-    subject = params[:subject]
-    body_html = params["body-html"]
+      # Process the email data
+      from = params[:from]
+      subject = params[:subject]
+      body_html = params["body-html"]
 
-    # Handle your logic here
-    Rails.logger.info "Received email from: #{from}, Subject: #{subject}"
-    Rails.logger.info "Body: #{body_html}"
+      # Handle your logic here
+      Rails.logger.info "Received email from: #{from}, Subject: #{subject}"
+      Rails.logger.info "Body: #{body_html}"
 
-    parsed_data = parse_email_content(body_html)
+      parsed_data = parse_email_content(body_html)
 
-    account = Account.find_by("name LIKE ?", "%#{parsed_data['Moneda']}%#{parsed_data['Last 4 Digits']}")
+      account = Account.find_by("name LIKE ?", "%#{parsed_data['Moneda']}%#{parsed_data['Last 4 Digits']}")
 
-    merchant = Merchant.find_or_create_by(name: parsed_data["Comercio"], color: "#e99537", family_id: account.family.id, icon_url: nil)
+      merchant = Merchant.find_or_create_by(name: parsed_data["Comercio"], color: "#e99537", family_id: account.family.id, icon_url: nil)
 
-    transaction = account.transactions.new(
-      category: Category.find_by(name: "Sin Asignar"), # Replace with the actual category ID
-      merchant: merchant,
-    )
+      transaction = account.transactions.new(
+        category: Category.find_by(name: "Sin Asignar"), # Replace with the actual category ID
+        merchant: merchant,
+      )
 
-    transaction.save
+      transaction.save
 
-    entry_attributes = {
-      account: account,
-      currency: account ? account.currency : parsed_data["Moneda"],
-      entryable: transaction,
-      amount: parsed_data["Monto"],
-      date: Date.strptime(parsed_data["Fecha"], "%d/%m/%Y").strftime("%Y-%m-%d"),
-      name: parsed_data["Comercio"]
-    }
+      entry_attributes = {
+        account: account,
+        currency: account ? account.currency : parsed_data["Moneda"],
+        entryable: transaction,
+        amount: parsed_data["Monto"],
+        date: Date.strptime(parsed_data["Fecha"], "%d/%m/%Y").strftime("%Y-%m-%d"),
+        name: parsed_data["Comercio"]
+      }
 
-    entry = Account::Entry.new(entry_attributes)
+      entry = Account::Entry.new(entry_attributes)
 
-    if entry.save
-      entry.sync_account_later
-      Rails.logger.info "Entry created: #{entry.inspect}"
+      if entry.save
+        entry.sync_account_later
+        Rails.logger.info "Entry created: #{entry.inspect}"
 
-      head :ok
+        head :ok
+      else
+        render json: { error: "Invalid signature" }, status: :unauthorized
+      end
     else
       render json: { error: "Invalid signature" }, status: :unauthorized
     end
-
-    # if entry.save
-    #   entry.sync_account_later
-
-    #   flash[:notice] = t("account.entries.create.success")
-
-    #   respond_to do |format|
-    #     format.html { redirect_back_or_to account_path(@entry.account) }
-
-    #     redirect_target_url = request.referer || account_path(@entry.account)
-    #     format.turbo_stream { render turbo_stream: turbo_stream.action(:redirect, redirect_target_url) }
-    #   end
-    # else
-    #   render :new, status: :unprocessable_entity
-    # end
-
-    # account = Account.find_by("name LIKE ?", "%#{parsed_data['Moneda'] #{parsed_data['Last 4 Digits']}")
-    # transaction = Account::Transaction.new(
-    #   category: Category.find_by(name: "Sin Asignar"), # Replace with the actual category ID
-    #   merchant: Merchant.find_or_create_by(name: parsed_data["Comercio"]),
-    # )
-
-    # entry = Account::Entry.create!(
-    #   account: account,
-    #   name: parsed_data["Comercio"] + " - " + parsed_data["Fecha"],
-    #   date: Date.strptime(parsed_data["Fecha"], "%d/%m/%Y").strftime("%Y-%m-%d"),
-    #   currency: parsed_data["Moneda"],
-    #   amount: -parsed_data["Monto"],
-    #   entryable: transaction
-    # )
-
-    # Rails.logger.info "Entry created: #{entry.inspect}"
-
-    # Respond with success
-    # head :ok
-    # else
-    #   render json: { error: "Invalid signature" }, status: :unauthorized
-    # end
   end
 
   private
