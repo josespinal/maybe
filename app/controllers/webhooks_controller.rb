@@ -64,8 +64,6 @@ class WebhooksController < ApplicationController
 
     parsed_data = parse_email_content(body_html)
 
-    ray(parsed_data)
-
     account = Account.find_by("name LIKE ?", "%#{parsed_data['Moneda']}%#{parsed_data['Last 4 Digits']}")
 
     merchant = Merchant.find_or_create_by(name: parsed_data["Comercio"], color: "#e99537", family_id: account.family.id, icon_url: nil)
@@ -87,8 +85,6 @@ class WebhooksController < ApplicationController
     }
 
     entry = Account::Entry.new(entry_attributes)
-
-    ray(entry)
 
     if entry.save
       entry.sync_account_later
