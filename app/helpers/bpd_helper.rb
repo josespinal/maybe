@@ -7,6 +7,7 @@ module BpdHelper
 
     # Extract the table with class "myTable2"
     table = doc.at_css("table.myTable2")
+
     return {} unless table
 
     # Extract headers (inside <th> tags)
@@ -51,15 +52,19 @@ module BpdHelper
     # Extract card type and last 4 digits
     def extract_card_info(doc)
       card_text = doc.at_css('p:contains("Gracias por utilizar su")')&.text
+
       return {} unless card_text
 
-      match = card_text.match(/Gracias por utilizar su ([A-Z\s]+), terminada en\s+(\d{4})/)
-      {
-
-        "Card Type" => match[1]&.strip,
-        "Last 4 Digits" => match[2]&.strip
-      }
+      if (match = card_text.match(/Gracias por utilizar su\s+([A-Za-z\s]+),\s+terminada en\s+(\d{4})/))
+        {
+          "Card Type" => match[1]&.strip,
+          "Last 4 Digits" => match[2]&.strip
+        }
+      else
+        {}
+      end
     end
+
 
     # Save a transaction to the database
     def save_transaction(transaction, email)
