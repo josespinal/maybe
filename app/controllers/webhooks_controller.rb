@@ -53,7 +53,8 @@ class WebhooksController < ApplicationController
       # Process the email data
       from = params[:from]
       subject = params[:subject]
-      body_html = params["body-html"]
+      raw_html = params["body-html"]
+      body_html = force_utf8_encoding(raw_html)
 
       # Handle your logic here
       Rails.logger.info "Received email from: #{from}, Subject: #{subject}"
@@ -121,5 +122,11 @@ class WebhooksController < ApplicationController
       else
         Rails.logger.error "Family not found for Stripe customer ID: #{customer.id}"
       end
+    end
+
+    def force_utf8_encoding(text)
+      return "" if text.nil?
+
+      text.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
     end
 end
