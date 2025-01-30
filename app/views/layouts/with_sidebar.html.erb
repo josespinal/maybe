@@ -1,6 +1,6 @@
 <%= content_for :content do %>
   <div class="flex h-full bg-gray-25">
-    <div class="p-6 pb-20 w-[368px] shrink-0 h-full overflow-y-auto">
+    <div class="mb-sidebar hidden absolute bg-white w-full z-50 lg:block lg:relative p-6 pb-20 lg:w-[368px] shrink-0 h-full overflow-y-auto">
       <% if content_for?(:sidebar) %>
         <%= yield :sidebar %>
       <% else %>
@@ -8,11 +8,21 @@
       <% end %>
     </div>
 
-    <main class="grow px-20 py-6 h-full <%= require_upgrade? ? "relative overflow-hidden" : "overflow-y-auto" %>">
+    <main class="grow px-6 lg:px-20 py-6 pt-10 lg:pt-6 h-full <%= require_upgrade? ? "relative overflow-hidden" : "overflow-y-auto" %>">
       <% if require_upgrade? %>
         <%= render "shared/subscribe_modal" %>
       <% end %>
 
+      <div class="absolute z-50 top-3 left-1 bg-white p-1">
+        <div id="close-sidebar" onclick="document.querySelector('.mb-sidebar').classList.add('hidden'); document.getElementById('close-sidebar').classList.add('hidden'); document.getElementById('open-sidebar').classList.remove('hidden');" class="hidden lg:hidden w-5 transition-all duration-300 ease-in-out cursor-pointer">
+          <%= lucide_icon("x", class: "w-5 h-5 text-gray-500 shrink-0") %>
+        </div>
+
+        <div id="open-sidebar" onclick="document.querySelector('.mb-sidebar').classList.remove('hidden'); document.querySelector('.mb-sidebar').classList.add('block'); document.getElementById('open-sidebar').classList.add('hidden'); document.getElementById('close-sidebar').classList.remove('hidden');" class="block lg:hidden w-5 transition-all duration-300 ease-in-out cursor-pointer">
+          <%= lucide_icon("panel-left-open", class: "w-5 h-5 text-gray-500 shrink-0") %>
+        </div>
+      </div>
+      
       <%= yield %>
     </main>
   </div>
