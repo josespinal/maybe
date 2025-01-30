@@ -6,8 +6,12 @@ class Account::Transaction < ApplicationRecord
   has_many :taggings, as: :taggable, dependent: :destroy
   has_many :tags, through: :taggings
 
-  has_one :transfer_as_inflow, class_name: "Transfer", foreign_key: "inflow_transaction_id", dependent: :restrict_with_exception
-  has_one :transfer_as_outflow, class_name: "Transfer", foreign_key: "outflow_transaction_id", dependent: :restrict_with_exception
+  has_one :transfer_as_inflow, class_name: "Transfer", foreign_key: "inflow_transaction_id", dependent: :destroy
+  has_one :transfer_as_outflow, class_name: "Transfer", foreign_key: "outflow_transaction_id", dependent: :destroy
+
+  # We keep track of rejected transfers to avoid auto-matching them again
+  has_one :rejected_transfer_as_inflow, class_name: "RejectedTransfer", foreign_key: "inflow_transaction_id", dependent: :destroy
+  has_one :rejected_transfer_as_outflow, class_name: "RejectedTransfer", foreign_key: "outflow_transaction_id", dependent: :destroy
 
   accepts_nested_attributes_for :taggings, allow_destroy: true
 
@@ -24,6 +28,6 @@ class Account::Transaction < ApplicationRecord
   end
 
   def transfer?
-    transfer.present? && transfer.status != "rejected"
+    transfer.present?
   end
 end
