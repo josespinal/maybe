@@ -6,7 +6,7 @@ module BpdHelper
 
     # Locate the transaction table (first table containing 'Monto')
     table = doc.xpath('//table[contains(@style, "max-width:80%")]').first
-    
+
     # Locate the othe possible format of table
     unless table
       table = doc.at_css("table.myTable2")
@@ -31,14 +31,14 @@ module BpdHelper
     # Map headers to row values
     transaction = headers.zip(first_row).to_h
 
-    
+
     parse_monto(transaction)
     card_info = extract_card_info(doc)
     transaction.merge!(card_info)
-    
+
     # Debug: Print transaction hash
     # puts "Transaction: #{transaction.inspect}"
-    
+
     transaction
   end
 
