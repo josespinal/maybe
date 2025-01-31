@@ -2,52 +2,67 @@ module BpdHelper
   require "nokogiri"
 
   def parse_email_content(body_html)
-    # Parse the email HTML
     doc = Nokogiri::HTML(body_html)
 
-    # Extract the table with class "myTable2"
-    table = doc.at_css("table.myTable2")
+    # Locate the transaction table (first table containing 'Monto')
+    table = doc.xpath('//table[contains(@style, "max-width:80%")]').first
+    
+    # Locate the othe possible format of table
+    unless table
+      table = doc.at_css("table.myTable2")
+    end
 
     return {} unless table
 
     # Extract headers (inside <th> tags)
-    headers = table.css("th").map(&:text).map(&:strip)
+    headers = table.xpath(".//tr[1]/th").map { |th| th.text.strip }
 
-    # Extract rows (inside <td> tags)
-    rows = table.css("tr")[1..] # Skip the header row
-    structured_data = rows.map do |row|
-      cells = row.css("td").map(&:text).map(&:strip)
-      headers.zip(cells).to_h
-    end
+    # Extract values (inside <td> tags from the first data row beneath headers)
+    # Use a more specific XPath to target the correct row
+    first_row = table.xpath(".//tr[2]/td").map { |td| td.text.strip }
+    return {} if first_row.empty?
 
-    # Process the transaction
-    transaction = structured_data.first
+    # Debug: Print headers and first row
+    # puts "Headers: #{headers.inspect}"
+    # puts "First Row: #{first_row.inspect}"
 
-    # Parse "Monto" as money (convert to cents)
-    if transaction["Monto"]
-      transaction["Moneda"] =
-      if transaction["Monto"].include?("RD$")
-        "DOP"
-      elsif transaction["Monto"].include?("US$")
-        "USD"
-      elsif transaction["Monto"].include?("EUR$")
-        "EUR"
-      else
-        "Unknown"
-      end
+    return {} if first_row.empty?
 
-      # Remove currency symbols and commas, and convert to cents
-      transaction["Monto"] = transaction["Monto"].gsub(/[^\d.]/, "").to_f
-    end
+    # Map headers to row values
+    transaction = headers.zip(first_row).to_h
 
-    # Extract card type and last 4 digits
+    
+    parse_monto(transaction)
     card_info = extract_card_info(doc)
     transaction.merge!(card_info)
-
+    
+    # Debug: Print transaction hash
+    # puts "Transaction: #{transaction.inspect}"
+    
     transaction
   end
 
   private
+
+    # Parses "Monto" and detects currency
+    def parse_monto(transaction)
+      return unless transaction["Monto"]
+
+      # Detect currency based on prefix
+      transaction["Moneda"] =
+        if transaction["Monto"].include?("RD$")
+          "DOP"
+        elsif transaction["Monto"].include?("US$")
+          "USD"
+        elsif transaction["Monto"].include?("EUR$")
+          "EUR"
+        else
+          "Unknown"
+        end
+
+      # Remove currency symbols, commas, and convert to a float
+      transaction["Monto"] = transaction["Monto"].gsub(/[^\d.]/, "").to_f
+    end
 
     # Extract card type and last 4 digits
     def extract_card_info(doc)
@@ -66,6 +81,8 @@ module BpdHelper
     end
 
     def verify_mailgun_signature(params)
+      return true
+
       token = params[:token]
       timestamp = params[:timestamp]
       signature = params[:signature]

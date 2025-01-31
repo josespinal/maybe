@@ -56,33 +56,34 @@ class WebhooksController < ApplicationController
       raw_html = params["body-html"]
       body_html = force_utf8_encoding(raw_html)
 
-      # Handle your logic here
-      Rails.logger.info "Received email from: #{from}, Subject: #{subject}"
-      Rails.logger.info "Body: #{body_html}"
-
       parsed_data = parse_email_content(body_html)
 
       account = Account.find_by("name LIKE ?", "%#{parsed_data['Moneda']}%#{parsed_data['Last 4 Digits']}")
+      
+      if account
+        merchant = Merchant.find_or_create_by(name: parsed_data["Comercio"], color: "#e99537", family_id: account.family.id, icon_url: nil)
 
-      merchant = Merchant.find_or_create_by(name: parsed_data["Comercio"], color: "#e99537", family_id: account.family.id, icon_url: nil)
+        transaction = account.transactions.new(
+          category: Category.find_by(name: "Sin Asignar"), # Replace with the actual category ID
+          merchant: merchant,
+        )
 
-      transaction = account.transactions.new(
-        category: Category.find_by(name: "Sin Asignar"), # Replace with the actual category ID
-        merchant: merchant,
-      )
+        transaction.save
 
-      transaction.save
+        entry_attributes = {
+          account: account,
+          currency: account ? account.currency : parsed_data["Moneda"],
+          entryable: transaction,
+          amount: parsed_data["Monto"],
+          date: Date.strptime(parsed_data["Fecha"], "%d/%m/%Y").strftime("%Y-%m-%d"),
+          name: parsed_data["Comercio"]
+        }
 
-      entry_attributes = {
-        account: account,
-        currency: account ? account.currency : parsed_data["Moneda"],
-        entryable: transaction,
-        amount: parsed_data["Monto"],
-        date: Date.strptime(parsed_data["Fecha"], "%d/%m/%Y").strftime("%Y-%m-%d"),
-        name: parsed_data["Comercio"]
-      }
-
-      entry = Account::Entry.new(entry_attributes)
+        entry = Account::Entry.new(entry_attributes)
+      else
+        Rails.logger.error "Could not find account with this matching name: %#{parsed_data['Moneda']}%#{parsed_data['Last 4 Digits']}"
+        render json: { error: "Account not found" }, status: :internal_server_error
+      end
 
       if entry.save
         entry.sync_account_later
